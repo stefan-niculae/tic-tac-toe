@@ -1,0 +1,37 @@
+body
+  width: 50%
+  margin: auto // center horizontally
+  text-align: center
+
+  font-family: "Open Sans", sans-serif
+
+h1
+  margin: 3em 0
+
+$cell-size: 70px
+.game
+  .game-board
+    border-collapse: collapse
+    margin: auto  // center horizontally
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) // rise it up a bit
+
+    td
+      width: $cell-size
+      height: $cell-size
+      border: 1px solid lightgrey
+
+      text-align: center
+      font-family: "Arial", sans-serif
+      font-size: .65 * $cell-size
+      font-weight: bold
+      color: rgba(0, 0, 0, 0.9)
+
+      &.highlighted
+        text-shadow: 0 0 8px rgba(56, 175, 255, 0.8)
+
+
+  .game-board.game-over td
+    color: rgba(0, 0, 0, .5)
+    &.highlighted
+      text-shadow: none
+      background-color: rgba(56, 175, 255, 0.15)

@@ -1,0 +1,31 @@
+body {
+  width: 50%;
+  margin: auto;
+  text-align: center;
+  font-family: "Open Sans", sans-serif; }
+
+h1 {
+  margin: 3em 0; }
+
+.game .game-board {
+  border-collapse: collapse;
+  margin: auto;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2); }
+  .game .game-board td {
+    width: 70px;
+    height: 70px;
+    border: 1px solid lightgrey;
+    text-align: center;
+    font-family: "Arial", sans-serif;
+    font-size: 45.5px;
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.9); }
+    .game .game-board td.highlighted {
+      text-shadow: 0 0 8px rgba(56, 175, 255, 0.8); }
+.game .game-board.game-over td {
+  color: rgba(0, 0, 0, 0.5); }
+  .game .game-board.game-over td.highlighted {
+    text-shadow: none;
+    background-color: rgba(56, 175, 255, 0.15); }
+
+/*# sourceMappingURL=style.css.map */
