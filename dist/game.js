@@ -1,18 +1,17 @@
 const NEED_TO_WIN = 3; // number of adjacent symbols needed to win
-const DISPLAY_SYMBOL = stateValue => {
+const DISPLAY_SYMBOL = {
     // mapping from internal value to external display symbol
-    if (stateValue === null) return '';
-    if (stateValue === +1) return 'X';
-    if (stateValue === -1) return 'O'; // the letter O is more aesthetic than a zero
+    null: '',
+    1: 'X',
+    '-1': 'O' // the letter O is more aesthetic than a zero
 };
 
-class GameBoard {
+class Game {
     constructor(size, root) {
         this.size = size;
-        this.elements = this.createBoard(root);
+        this.elements = this.createGame(root);
 
         this.initializeState();
-        this.syncStatus();
     }
 
     // Initialization
@@ -20,6 +19,12 @@ class GameBoard {
         this.values = this.emptyValues();
         this.nextPlayer = +1; // X
         this.winner = null;
+
+        this.history = [];
+        this.appendStep();
+
+        this.syncStatus();
+        this.syncCells();
     }
 
     emptyValues() {
@@ -31,9 +36,39 @@ class GameBoard {
         return state;
     }
 
-    createBoard(root) {
+    createHistoryBoard(step) {
+        let board = $('<table>', { 'class': 'board' });
+        for (let r = 0; r < this.size; r++) {
+            let row = $('<tr>');
+            for (let c = 0; c < this.size; c++) {
+                let cell = $('<td>');
+                let value = step.values[r][c];
+                cell.text(DISPLAY_SYMBOL[value]);
+                row.append(cell);
+            }
+            board.append(row);
+        }
+
+        board.click(() => {
+            this.values = step.values;
+            this.nextPlayer = step.nextPlayer;
+            this.winner = step.winner;
+
+            let truncatedHistory = this.history.slice(0, step.number + 1); // keep history up until this step
+            this.history = deepCopyArray(truncatedHistory);
+            console.log(this.history);
+
+            this.syncStatus();
+            this.syncCells();
+            this.syncHistory();
+        });
+
+        return board;
+    }
+
+    createGame(root) {
         // create the cell objects
-        let cells = [];
+        let allCells = [];
         for (let r = 0; r < this.size; r++) {
             let row = [];
             for (let c = 0; c < this.size; c++) {
@@ -42,18 +77,29 @@ class GameBoard {
                 });
                 row.push(cell);
             }
-            cells.push(row);
+            allCells.push(row);
         }
 
         // build and insert the elements into the DOM
-        let rowElements = cells.map(rowCells => $('<tr>').append(rowCells));
-        let board = $('<table>', { 'class': 'game-board' }).append(rowElements);
-        let status = $('<p>', { 'class': 'game-status' });
+        let message = $('<span>', { 'class': 'message' });
+        let player = $('<span>', { 'class': 'player' });
+        let status = $('<p>', { 'class': 'status' }).append(message).append(': ').append(player);
 
-        let game = $('<article>', { 'class': 'game' }).append(board).append(status);
-        root.append(game);
+        let rowElements = allCells.map(rowCells => $('<tr>').append(rowCells));
+        let board = $('<table>', { 'class': 'board' }).append(rowElements);
 
-        return { cells, board, status };
+        let activeSide = $('<div>', { 'class': 'active-side' }).append(status).append(board);
+
+        let historyBoards = $('<div>', { 'class': 'boards' });
+        let history = $('<div>', { 'class': 'history' }).append('<p>History</p>').append(historyBoards);
+
+        $('<article>', { 'class': 'game' }).append(activeSide).append(history).appendTo(root);
+
+        // height is only evaluated after the element is inserted in the DOM
+        let height = activeSide.height();
+        history.css('height', height + 'px');
+
+        return { allCells, board, message, player, historyBoards };
     }
 
     // Updating
@@ -72,8 +118,17 @@ class GameBoard {
 
         this.syncCells(); // show symbols and highlights
         this.syncStatus(); // show next player or winner
+
+        this.appendStep();
     }
 
+    syncStatus() {
+        let gameOver = this.winner !== null;
+        this.elements.message.text(gameOver ? 'Winner' : 'Next player');
+        this.elements.player.text(DISPLAY_SYMBOL[gameOver ? this.winner : this.nextPlayer]);
+
+        if (gameOver) this.elements.board.addClass('game-over');else this.elements.board.removeClass('game-over');
+    }
     syncCells() {
         // reflect changes in this.values into the DOM elements, accessed through this.cells
         // and the next player
@@ -84,9 +139,9 @@ class GameBoard {
         for (let r = 0; r < this.size; r++) {
             for (let c = 0; c < this.size; c++) {
                 let value = this.values[r][c];
-                let cell = this.elements['cells'][r][c];
+                let cell = this.elements.allCells[r][c];
 
-                let symbol = DISPLAY_SYMBOL(value);
+                let symbol = DISPLAY_SYMBOL[value];
                 cell.text(symbol);
 
                 if (value === highlightWhom) cell.addClass('highlighted');else cell.removeClass('highlighted');
@@ -94,12 +149,20 @@ class GameBoard {
         }
     }
 
-    syncStatus() {
-        let gameOver = this.winner !== null;
-        let message = gameOver ? 'Winner: ' + DISPLAY_SYMBOL(this.winner) : 'Next player: ' + DISPLAY_SYMBOL(this.nextPlayer);
-        this.elements['status'].text(message);
-
-        if (gameOver) this.elements['board'].addClass('game-over');
+    appendStep() {
+        let nSteps = this.history.length;
+        this.history.push({
+            number: nSteps,
+            nextPlayer: this.nextPlayer,
+            values: deepCopyArray(this.values),
+            winner: this.winner
+        });
+        this.syncHistory();
+    }
+    syncHistory() {
+        let game = this;
+        let boards = this.history.map(step => game.createHistoryBoard(step));
+        this.elements.historyBoards.html(boards);
     }
 
     // Win condition
@@ -121,5 +184,5 @@ class GameBoard {
 }
 
 let gamesRoot = $('#games');
-var game = new GameBoard(3, gamesRoot);
+const game = new Game(3, gamesRoot);
 //# sourceMappingURL=game.js.map

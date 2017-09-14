@@ -18,3 +18,5 @@ diagonal = (m) => {
    7 8 9     9 8 7
  */
 mirror = (m) => m.map(row => [...row].reverse())
+
+deepCopyArray = (arr) => $.extend(true, [], arr)

@@ -1,37 +1,90 @@
+*
+  font-family: Lato, 'Helvetica Neue', Arial, Helvetica, sans-serif
+
 body
   width: 50%
   margin: auto // center horizontally
   text-align: center
+  background-color: rgba(255, 255, 255, 0.97)
 
-  font-family: "Open Sans", sans-serif
 
 h1
-  margin: 3em 0
+  font-size: 4.65em
+  margin-top: 100px
+  margin-bottom: 10px
+  color: rgba(0, 0, 0, 0.95)
 
-$cell-size: 70px
+#instructions
+  color: grey
+  margin-top: 5px
+  margin-bottom: 150px
+
+$nice-blue: rgb(33, 133, 208)
+$nice-blue-faded: rgba(33, 133, 208, .1)
+
+button
+  cursor: pointer
+  border-radius: 4px
+  border: none
+  font-size: 1em
+  font-weight: bold
+  margin: 0 3.5px 10.5px 0
+  padding: 11px 21px
+
+
 .game
-  .game-board
+  display: grid
+  grid-template-columns: 4fr 1fr
+  //grid-gap: 10px
+  margin: auto
+
+  .board
     border-collapse: collapse
     margin: auto  // center horizontally
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) // rise it up a bit
 
     td
-      width: $cell-size
-      height: $cell-size
+      width: var(--cell-size)
+      height: var(--cell-size)
       border: 1px solid lightgrey
 
       text-align: center
       font-family: "Arial", sans-serif
-      font-size: .65 * $cell-size
+      font-size: calc(var(--cell-size) * .65)
       font-weight: bold
       color: rgba(0, 0, 0, 0.9)
 
       &.highlighted
-        text-shadow: 0 0 8px rgba(56, 175, 255, 0.8)
+        color: $nice-blue
 
+  .active-side
+    --cell-size: 7vw
 
-  .game-board.game-over td
-    color: rgba(0, 0, 0, .5)
-    &.highlighted
-      text-shadow: none
-      background-color: rgba(56, 175, 255, 0.15)
+    .status .player
+      font-weight: 800
+
+    .board
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) // rise it up a bit
+
+      &.game-over td
+        color: rgba(0, 0, 0, .5)
+        &.highlighted
+          background-color: $nice-blue-faded
+
+  .history
+    overflow: scroll
+    --cell-size: 2vw
+    .board
+      margin-bottom: 15px
+      cursor: pointer
+
+#create-game
+  margin-top: 150px
+
+  button
+    background-color: $nice-blue
+    color: white
+
+  label
+    display: block
+    color: $nice-blue
+    font-weight: bold

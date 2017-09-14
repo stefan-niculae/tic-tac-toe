@@ -1,31 +1,75 @@
+* {
+  font-family: Lato, "Helvetica Neue", Arial, Helvetica, sans-serif; }
+
 body {
   width: 50%;
   margin: auto;
   text-align: center;
-  font-family: "Open Sans", sans-serif; }
+  background-color: rgba(255, 255, 255, 0.97); }
 
 h1 {
-  margin: 3em 0; }
+  font-size: 4.65em;
+  margin-top: 100px;
+  margin-bottom: 10px;
+  color: rgba(0, 0, 0, 0.95); }
 
-.game .game-board {
-  border-collapse: collapse;
-  margin: auto;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2); }
-  .game .game-board td {
-    width: 70px;
-    height: 70px;
-    border: 1px solid lightgrey;
-    text-align: center;
-    font-family: "Arial", sans-serif;
-    font-size: 45.5px;
-    font-weight: bold;
-    color: rgba(0, 0, 0, 0.9); }
-    .game .game-board td.highlighted {
-      text-shadow: 0 0 8px rgba(56, 175, 255, 0.8); }
-.game .game-board.game-over td {
-  color: rgba(0, 0, 0, 0.5); }
-  .game .game-board.game-over td.highlighted {
-    text-shadow: none;
-    background-color: rgba(56, 175, 255, 0.15); }
+#instructions {
+  color: grey;
+  margin-top: 5px;
+  margin-bottom: 150px; }
+
+button {
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  font-size: 1em;
+  font-weight: bold;
+  margin: 0 3.5px 10.5px 0;
+  padding: 11px 21px; }
+
+.game {
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  margin: auto; }
+  .game .board {
+    border-collapse: collapse;
+    margin: auto; }
+    .game .board td {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border: 1px solid lightgrey;
+      text-align: center;
+      font-family: "Arial", sans-serif;
+      font-size: calc(var(--cell-size) * .65);
+      font-weight: bold;
+      color: rgba(0, 0, 0, 0.9); }
+      .game .board td.highlighted {
+        color: #2185d0; }
+  .game .active-side {
+    --cell-size: 7vw; }
+    .game .active-side .status .player {
+      font-weight: 800; }
+    .game .active-side .board {
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.2); }
+      .game .active-side .board.game-over td {
+        color: rgba(0, 0, 0, 0.5); }
+        .game .active-side .board.game-over td.highlighted {
+          background-color: rgba(33, 133, 208, 0.1); }
+  .game .history {
+    overflow: scroll;
+    --cell-size: 2vw; }
+    .game .history .board {
+      margin-bottom: 15px;
+      cursor: pointer; }
+
+#create-game {
+  margin-top: 150px; }
+  #create-game button {
+    background-color: #2185d0;
+    color: white; }
+  #create-game label {
+    display: block;
+    color: #2185d0;
+    font-weight: bold; }
 
 /*# sourceMappingURL=style.css.map */
