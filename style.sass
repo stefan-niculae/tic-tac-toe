@@ -31,6 +31,25 @@ button
   margin: 0 3.5px 10.5px 0
   padding: 11px 21px
 
+.ripple
+  position: relative
+  overflow: hidden
+  cursor: pointer
+
+.ripple-ink
+  position: absolute
+  background: #bdc3c7
+  border-radius: 50%
+  transform: scale(0)
+  opacity: 0.4
+  &.animate
+    animation: fade-growing 0.3s linear
+
+@keyframes fade-growing
+  to
+    transform: scale(2.5)
+    opacity: 0
+
 
 .game
   display: grid
@@ -53,22 +72,42 @@ button
       font-weight: bold
       color: rgba(0, 0, 0, 0.9)
 
-      &.highlighted
-        color: $nice-blue
+
 
   .active-side
     --cell-size: 7vw
 
     .status .player
       font-weight: 800
+      width: 1em // fixed width so it doesn't fiddle around
+      display: inline-block
+
 
     .board
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) // rise it up a bit
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05) // rise it up a bit
 
-      &.game-over td
-        color: rgba(0, 0, 0, .5)
-        &.highlighted
-          background-color: $nice-blue-faded
+      td
+        //&.highlighted
+        //  color: $nice-blue
+        transition: all 0.2s ease
+        &:hover
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.3) // rise it up a bit
+        .ripple-ink
+          background-color: $nice-blue
+
+  &.game-over
+    td
+      color: rgba(0, 0, 0, .5)
+      &.highlighted
+        background-color: $nice-blue-faded
+    .status .player
+      color: $nice-blue
+
+  &.game-over .active-side td,
+  .active-side td.noninteractive
+    cursor: default
+    .ripple-ink
+      display: none
 
   .history
     overflow: scroll

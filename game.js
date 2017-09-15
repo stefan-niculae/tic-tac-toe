@@ -56,7 +56,6 @@ class Game {
 
             let truncatedHistory = this.history.slice(0, step.number + 1) // keep history up until this step
             this.history = deepCopyArray(truncatedHistory)
-            console.log(this.history);
 
             this.syncStatus()
             this.syncCells()
@@ -73,6 +72,7 @@ class Game {
             let row = []
             for (let c = 0; c < this.size; c++) {
                 let cell = $('<td>', {
+                    'class': 'ripple',
                     click: () => this.fillCell(r, c)
                 })
                 row.push(cell)
@@ -100,16 +100,16 @@ class Game {
             .append('<p>History</p>')
             .append(historyBoards)
 
-        $('<article>', {'class': 'game'})
+        let game = $('<article>', {'class': 'game'})
             .append(activeSide)
             .append(history)
             .appendTo(root)
 
         // height is only evaluated after the element is inserted in the DOM
         let height = activeSide.height()
-        history.css('height', height + 'px')
+        history.css({height: height + 'px'})
 
-        return { allCells, board, message, player, historyBoards }
+        return { allCells, game, message, player, historyBoards }
     }
 
     // Updating
@@ -140,9 +140,9 @@ class Game {
         this.elements.player.text(DISPLAY_SYMBOL[gameOver ? this.winner : this.nextPlayer])
 
         if (gameOver)
-            this.elements.board.addClass('game-over')
+            this.elements.game.addClass('game-over')
         else
-            this.elements.board.removeClass('game-over')
+            this.elements.game.removeClass('game-over')
     }
     syncCells() {
         // reflect changes in this.values into the DOM elements, accessed through this.cells
@@ -159,6 +159,9 @@ class Game {
 
                 let symbol = DISPLAY_SYMBOL[value]
                 cell.text(symbol)
+
+                if (value === null) // empty cell and game is not over
+                    cell.removeClass('noninteractive')
 
                 if (value === highlightWhom)
                     cell.addClass('highlighted')
@@ -187,6 +190,18 @@ class Game {
 
     // Win condition
     findWinner() {
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                let deltas = [
+                    [[-1,  0], [+1,  0]], // left, right
+                    [[ 0, -1], [ 0, +1]], // above, below
+                    [[-1, -1], [+1, +1]], // up-left, down-right
+                    [[+1, -1], [-1, +1]], // down-left, up-right
+                ]
+                // TODO
+            }
+        }
+
         let sums = [
             ...this.values,                // on each row
             ...transpose(this.values),     // on each column
@@ -194,7 +209,7 @@ class Game {
             diagonal(mirror(this.values)), // on secondary diagonal
         ].map(sum)
 
-        let reachedRequired = sums.filter(sum => sum === NEED_TO_WIN)
+        let reachedRequired = sums.filter(sum => Math.abs(sum) === NEED_TO_WIN)
         if (reachedRequired.length === 0)
             // no symbol reached the required number of occurrences to win
             return null
