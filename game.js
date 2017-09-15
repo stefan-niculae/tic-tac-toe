@@ -199,7 +199,7 @@ class Game {
         this.elements.historyBoards.html(pastBoards)
 
         let container = this.elements.history
-        container.animate({scrollTop: container[0].scrollHeight}, 200) // FIXME scroll to bottom
+        container.animate({scrollTop: container[0].scrollHeight}, 200) // scroll to bottom
     }
 
 
