@@ -75,7 +75,7 @@ button
 
 
   .active-side
-    --cell-size: 7vw
+    --cell-size: 10vw
 
     .status .player
       font-weight: 800
@@ -87,18 +87,16 @@ button
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.05) // rise it up a bit
 
       td
-        //&.highlighted
-        //  color: $nice-blue
         transition: all 0.2s ease
         &:hover
           box-shadow: 0 0 6px rgba(0, 0, 0, 0.3) // rise it up a bit
         .ripple-ink
           background-color: $nice-blue
 
-  &.game-over
+  &.game-over .active-side
     td
       color: rgba(0, 0, 0, .5)
-      &.highlighted
+      &.winner
         background-color: $nice-blue-faded
     .status .player
       color: $nice-blue
@@ -111,9 +109,9 @@ button
 
   .history
     overflow: scroll
-    --cell-size: 2vw
+    --cell-size: 3vw
     .board
-      margin-bottom: 15px
+      margin-bottom: var(--cell-size)
       cursor: pointer
 
 #create-game

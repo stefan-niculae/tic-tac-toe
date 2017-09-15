@@ -62,7 +62,7 @@ button {
       font-weight: bold;
       color: rgba(0, 0, 0, 0.9); }
   .game .active-side {
-    --cell-size: 7vw; }
+    --cell-size: 10vw; }
     .game .active-side .status .player {
       font-weight: 800;
       width: 1em;
@@ -75,11 +75,11 @@ button {
           box-shadow: 0 0 6px rgba(0, 0, 0, 0.3); }
         .game .active-side .board td .ripple-ink {
           background-color: #2185d0; }
-  .game.game-over td {
+  .game.game-over .active-side td {
     color: rgba(0, 0, 0, 0.5); }
-    .game.game-over td.highlighted {
+    .game.game-over .active-side td.winner {
       background-color: rgba(33, 133, 208, 0.1); }
-  .game.game-over .status .player {
+  .game.game-over .active-side .status .player {
     color: #2185d0; }
   .game.game-over .active-side td,
   .game .active-side td.noninteractive {
@@ -89,9 +89,9 @@ button {
       display: none; }
   .game .history {
     overflow: scroll;
-    --cell-size: 2vw; }
+    --cell-size: 3vw; }
     .game .history .board {
-      margin-bottom: 15px;
+      margin-bottom: var(--cell-size);
       cursor: pointer; }
 
 #create-game {

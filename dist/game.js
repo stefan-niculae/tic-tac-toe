@@ -1,10 +1,16 @@
-const NEED_TO_WIN = 3; // number of adjacent symbols needed to win
 const DISPLAY_SYMBOL = {
     // mapping from internal value to external display symbol
     null: '',
     1: 'X',
     '-1': 'O' // the letter O is more aesthetic than a zero
 };
+const WIN_DELTAS = [[[-1, 0], [+1, 0]], // left, right
+[[0, -1], [0, +1]], // above, below
+[[-1, -1], [+1, +1]], // up-left, down-right
+[[+1, -1], [-1, +1]]];
+
+// Utils
+deepCopyArray = arr => $.extend(true, [], arr);
 
 class Game {
     constructor(size, root) {
@@ -99,7 +105,7 @@ class Game {
         let height = activeSide.height();
         history.css({ height: height + 'px' });
 
-        return { allCells, game, message, player, historyBoards };
+        return { allCells, game, message, player, history, historyBoards };
     }
 
     // Updating
@@ -114,7 +120,10 @@ class Game {
         // update the internal values and reflect the changes
         this.values[row][col] = this.nextPlayer; // set current player
         this.nextPlayer *= -1; // switch players
-        this.winner = this.findWinner();
+
+        let { winner, coords } = this.findWinner();
+        this.winner = winner;
+        if (winner !== null) this.highlightWinner(coords);
 
         this.syncCells(); // show symbols and highlights
         this.syncStatus(); // show next player or winner
@@ -133,9 +142,6 @@ class Game {
         // reflect changes in this.values into the DOM elements, accessed through this.cells
         // and the next player
 
-        let highlightWhom = this.winner === null ? this.nextPlayer : // highlight the next player if game in progress
-        this.winner; // if game over, highlight the winner
-
         for (let r = 0; r < this.size; r++) {
             for (let c = 0; c < this.size; c++) {
                 let value = this.values[r][c];
@@ -146,10 +152,12 @@ class Game {
 
                 if (value === null) // empty cell and game is not over
                     cell.removeClass('noninteractive');
-
-                if (value === highlightWhom) cell.addClass('highlighted');else cell.removeClass('highlighted');
             }
         }
+    }
+    highlightWinner(coords) {
+        let cells = this.elements.allCells;
+        for (let [x, y] of coords) cells[x][y].addClass('winner');
     }
 
     appendStep() {
@@ -163,34 +171,39 @@ class Game {
         this.syncHistory();
     }
     syncHistory() {
+        let nBoards = Math.max(1, this.history.length - 1);
+        let pastSteps = this.history.slice(0, nBoards);
+
         let game = this;
-        let boards = this.history.map(step => game.createHistoryBoard(step));
-        this.elements.historyBoards.html(boards);
+        let pastBoards = pastSteps.map(step => game.createHistoryBoard(step));
+        this.elements.historyBoards.html(pastBoards);
+
+        let container = this.elements.history;
+        container.animate({ scrollTop: container[0].scrollHeight }, 200); // FIXME scroll to bottom
     }
 
     // Win condition
     findWinner() {
+        let maybeValue = ([x, y]) => 0 <= x && x < this.size && 0 <= y && y < this.size ? this.values[x][y] : undefined;
+
         for (let r = 0; r < this.size; r++) {
             for (let c = 0; c < this.size; c++) {
-                let deltas = [[[-1, 0], [+1, 0]], // left, right
-                [[0, -1], [0, +1]], // above, below
-                [[-1, -1], [+1, +1]], // up-left, down-right
-                [[+1, -1], [-1, +1]]];
+                let centerVal = this.values[r][c];
+                if (centerVal === null) // there can't be a winner with an empty center
+                    continue;
+
+                for (let neighborDeltas of WIN_DELTAS) {
+                    let neighborCoords = neighborDeltas.map(([dx, dy]) => [r + dx, c + dy]);
+                    let neighborValues = neighborCoords.map(maybeValue);
+                    if (neighborValues.every(v => v === centerVal)) return {
+                        winner: centerVal,
+                        coords: [neighborCoords[0], [r, c], neighborCoords[1]]
+                    };
+                }
             }
         }
 
-        let sums = [...this.values, // on each row
-        ...transpose(this.values), // on each column
-        diagonal(this.values), // on main diagonal
-        diagonal(mirror(this.values))].map(sum);
-
-        let reachedRequired = sums.filter(sum => Math.abs(sum) === NEED_TO_WIN);
-        if (reachedRequired.length === 0)
-            // no symbol reached the required number of occurrences to win
-            return null;else {
-            console.assert(reachedRequired.length === 1, 'There should be at most ONE symbol to reach the required number of occurrences', reachedRequired);
-            return Math.sign(reachedRequired[0]); // +1 for a sum of 3, -1 for a sum of -3
-        }
+        return { winner: null, coords: [] };
     }
 
 }
