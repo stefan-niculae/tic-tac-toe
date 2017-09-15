@@ -111,7 +111,9 @@ class Game {
         let game = $('<article>', {'class': 'game'})
             .append(activeSide)
             .append(history)
-            .appendTo(root)
+
+        root.append(game)
+            .append('<hr>')
 
         // height is only evaluated after the element is inserted in the DOM
         let height = activeSide.height()
@@ -175,6 +177,10 @@ class Game {
     }
     highlightWinner(coords) {
         let cells = this.elements.allCells
+        for (let row of cells)
+            for (let cell of row)
+                cell.removeClass('winner')
+
         for (let [x, y] of coords)
             cells[x][y].addClass('winner')
     }
@@ -235,4 +241,4 @@ class Game {
 }
 
 let gamesRoot = $('#games')
-const game = new Game(3, gamesRoot)
+let createGame = (n) => new Game(n, gamesRoot)

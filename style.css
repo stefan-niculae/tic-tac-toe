@@ -2,7 +2,7 @@
   font-family: Lato, "Helvetica Neue", Arial, Helvetica, sans-serif; }
 
 body {
-  width: 50%;
+  width: 65%;
   margin: auto;
   text-align: center;
   background-color: rgba(255, 255, 255, 0.97); }
@@ -16,7 +16,7 @@ h1 {
 #instructions {
   color: grey;
   margin-top: 5px;
-  margin-bottom: 150px; }
+  margin-bottom: 100px; }
 
 button {
   cursor: pointer;
@@ -62,7 +62,7 @@ button {
       font-weight: bold;
       color: rgba(0, 0, 0, 0.9); }
   .game .active-side {
-    --cell-size: 10vw; }
+    --cell-size: 8vw; }
     .game .active-side .status .player {
       font-weight: 800;
       width: 1em;
@@ -89,13 +89,23 @@ button {
       display: none; }
   .game .history {
     overflow: scroll;
-    --cell-size: 3vw; }
+    --cell-size: 2.5vw; }
     .game .history .board {
       margin-bottom: var(--cell-size);
       cursor: pointer; }
 
+hr {
+  margin-top: 75px;
+  margin-bottom: 75px;
+  height: 1px;
+  background: rgba(128, 128, 128, 0.2);
+  border: 0; }
+  hr:last-of-type {
+    display: none; }
+
 #create-game {
-  margin-top: 150px; }
+  margin-top: 100px;
+  margin-bottom: 50px; }
   #create-game button {
     background-color: #2185d0;
     color: white; }
