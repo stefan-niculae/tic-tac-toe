@@ -24,13 +24,6 @@ function* matrixIterator(matrix) {
             }
 }
 
-function applyOnEachCell(matrix, f) {
-    for (let row = 0; row < matrix.length; row++)
-        for (let col = 0; col < matrix[row].length; col++)
-            f(row, col, matrix[row][col])
-}
-
-
 class Game {
     constructor(size, root) {
         this.size = size
