@@ -1,9 +1,11 @@
-const DISPLAY_SYMBOL = {
-    // mapping from internal value to external display symbol
-    null: '',
-    1: 'X',
-    '-1': 'O', // the letter O is more aesthetic than a zero
-}
+const CELL_STATES = {}
+CELL_STATES.EMPTY = Symbol('Empty Cell')
+CELL_STATES.X = Symbol('X')
+CELL_STATES.O = Symbol('O')
+const DISPLAY = {}
+DISPLAY[CELL_STATES.EMPTY] = '' // object creation syntax does not work with symbols
+DISPLAY[CELL_STATES.X]     = 'X'
+DISPLAY[CELL_STATES.O]     = 'O'
 const WIN_DELTAS = [
     [[0, -1], [0, +1]], // left, right
     [[-1, 0], [+1, 0]], // above, below
@@ -13,7 +15,7 @@ const WIN_DELTAS = [
 
 /** Utils **/
 deepCopyArray = (arr) => $.extend(true, [], arr)
-range = (n) => [...Array(n).keys()]  /* [0, 1, 2, 3, ... ] */
+range = (n) => [...(new Array(n).keys())]  /* [0, 1, 2, 3, ... ] */
 head = (array) => {
     /* First element or null */
     if (array.length === 0)
@@ -25,27 +27,28 @@ head = (array) => {
 class ReflectiveCell {
     /* Reflects changes to internal state in the DOM element */
     constructor(domElement, game) {
-        this._state = null // empty TODO create symbol with EMPTY, X, O
+        this._state = CELL_STATES.EMPTY
         this.domElement = domElement
             .click(e => ReflectiveCell.fillCell(e, this, game))
     }
     set state(value) {
         /* Show the corresponding symbol */
         this._state = value
-        let symbol = DISPLAY_SYMBOL[value]
+        let symbol = DISPLAY[value]
 
         this.domElement.text(symbol)
-        if (value === null)  // empty cell
+        if (value === CELL_STATES.EMPTY)  // empty cell
             // it will be turned noninteractive when the animation ends
             this.domElement.removeClass('noninteractive')
     }
     get state() { return this._state }
 
     static fillCell(clickEvent, cell, game) {
+        /* Register the click, updating the game state */
         if (game.isGameOver)
             return
 
-        if (cell.state !== null) // cell is already filled
+        if (cell.state !== CELL_STATES.EMPTY) // cell is already filled
             return
         cell.state = game.nextPlayer // actually set the value
 
@@ -60,23 +63,24 @@ class ReflectiveCell {
 class Game {
     constructor(size, rootElement) {
         this.size = size
-
         this.initializeState(rootElement)
     }
 
     /** Initialization **/
     initializeState(rootElement) {
+        /* Initialize internal values and create DOM elements */
         this.cellMatrix = this.createCells()
-        this.elements = this.createDomElements(rootElement) // has to be set after creating cells (need cell matrix)
+        this.elements = this.createDomElements(rootElement)
 
-        this.winner = null // has to be set after creating the elements (need message element)
-        this.nextPlayer = +1 // has to be set after creating elements and setting the winner (message element and content)
+        this.winner = null // null, X or O
+        this.nextPlayer = CELL_STATES.X
 
         this.stateHistory = []
         this.addCurrentStateToHistory() // add the initial state
     }
 
     createCells() {
+        /* Create the n by n matrix of (reflective) cells */
         let game = this
 
         return range(this.size).map(() =>
@@ -89,8 +93,8 @@ class Game {
     }
 
     createDomElements(gamesRoot) {
+        /* Create and insert the elements into the DOM */
         // TODO refactor into more readable syntax
-        // Build and insert the elements into the DOM
         let message = $('<span>', {'class': 'message'})
         let player = $('<span>', {'class': 'player'})
         let status = $('<p>', {'class': 'status'})
@@ -133,13 +137,15 @@ class Game {
     get isGameOver() { return (this.winner !== null) }
 
     set nextPlayer(value) {
+        /* Update the displayed player symbol */
         this._nextPlayer = value
         let displayedPlayer = this.isGameOver ? this.winner : this.nextPlayer
-        this.elements.player.text(DISPLAY_SYMBOL[displayedPlayer])
+        this.elements.player.text(DISPLAY[displayedPlayer])
     }
     get nextPlayer() { return this._nextPlayer }
 
     set winner(value) {
+        /* Set the message for winning or next player */
         this._winner = value
         let message = this.isGameOver ? 'Winner' : 'Next player'
         this.elements.message.text(message)
@@ -151,6 +157,7 @@ class Game {
 
 
     set stateHistory(value) {
+        /* Create a board element for each step in the history */
         this._history = value
 
         let game = this
@@ -166,7 +173,10 @@ class Game {
 
     /** Updating **/
     switchPlayers() {
-        this.nextPlayer *= -1
+        /* X becomes O and vice-versa */
+        this.nextPlayer = (this.nextPlayer === CELL_STATES.X) ?
+            CELL_STATES.O :
+            CELL_STATES.X
     }
 
 
@@ -188,13 +198,13 @@ class Game {
         let allCells = Array.from(this.iterateCells())
         let winningCells = allCells
             .map(game.findWinningNeighbors.bind(game))
-            .filter(result => result !== null)
+            .filter(winningNeighbors => winningNeighbors !== null)
         return head(winningCells) // first winning cell or null
     }
 
     findWinningNeighbors({row, col, cell}) {
         /* Check if neighboring cells (left & right, above & below, diagonals) are the same */
-        if (cell.state === null) // there can't be a winner with an empty center
+        if (cell.state === CELL_STATES.EMPTY) // there can't be a winner with an empty center
             return null
 
         let game = this
@@ -219,6 +229,7 @@ class Game {
     }
 
     highlightWinner(coordinates) {
+        /* Highlight the cells that caused the win */
         for (let {cell} of this.iterateCells())
             cell.domElement.removeClass('winner')
 
@@ -248,11 +259,12 @@ class Game {
     }
 
     createHistoryBoard(fromState) {
+        /* Populate the board and add the hook to be able to restore to this state when clicked */
         let cellStateRows = fromState.cellStateMatrix
 
         let rowElements = $.map(cellStateRows, cellStateRow => {
             let cellElements = $.map(cellStateRow, cellState => {
-                let symbol = DISPLAY_SYMBOL[cellState]
+                let symbol = DISPLAY[cellState]
                 return $('<td>').text(symbol) // cell element
             })
             return $('<tr>').append(cellElements) // row element
@@ -264,18 +276,20 @@ class Game {
     }
 
     resetToState(pastState) {
+        /* Replace the state of each cell, next player and the winner and keep only previous history steps */
         for (let {row, col, cell} of this.iterateCells())
             cell.state = pastState.cellStateMatrix[row][col]
         this.nextPlayer = pastState.nextPlayer
         this.winner = pastState.winner
 
-        let truncatedHistory = this.stateHistory.slice(0, pastState.number + 1) // keep stateHistory up until this step
+        let truncatedHistory = this.stateHistory.slice(0, pastState.number + 1) // keep history up until this step
         this.stateHistory = deepCopyArray(truncatedHistory)
     }
 
 
     /** Utils **/
     *iterateCells() {
+        /* Go through each cell in the matrix */
         for (let row = 0; row < this.size; row++)
             for (let col = 0; col < this.size; col++)
                 yield {
