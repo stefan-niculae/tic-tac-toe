@@ -1,18 +1,35 @@
 const DISPLAY_SYMBOL = {
     // mapping from internal value to external display symbol
-    null: '' ,
-      1 : 'X',
+    null: '',
+    1: 'X',
     '-1': 'O', // the letter O is more aesthetic than a zero
 }
 const WIN_DELTAS = [
-    [[-1,  0], [+1,  0]], // left, right
-    [[ 0, -1], [ 0, +1]], // above, below
+    [[0, -1], [0, +1]], // left, right
+    [[-1, 0], [+1, 0]], // above, below
     [[-1, -1], [+1, +1]], // up-left, down-right
     [[+1, -1], [-1, +1]], // down-left, up-right
 ]
 
 // Utils
 deepCopyArray = (arr) => $.extend(true, [], arr)
+
+function* matrixIterator(matrix) {
+    for (let row = 0; row < matrix.length; row++)
+        for (let col = 0; col < matrix[row].length; col++)
+            yield {
+                row,
+                col,
+                value: matrix[row][col],
+            }
+}
+
+function applyOnEachCell(matrix, f) {
+    for (let row = 0; row < matrix.length; row++)
+        for (let col = 0; col < matrix[row].length; col++)
+            f(row, col, matrix[row][col])
+}
+
 
 class Game {
     constructor(size, root) {
@@ -74,14 +91,17 @@ class Game {
     }
 
     createGame(root) {
+        let gameObj = this
+
         // create the cell objects
         let allCells = []
         for (let r = 0; r < this.size; r++) {
             let row = []
             for (let c = 0; c < this.size; c++) {
-                let cell = $('<td>', {
-                    'class': 'ripple',
-                    click: () => this.fillCell(r, c)
+                let cell = $('<td>', {'class': 'ripple'})
+                cell.click(event => {
+                    gameObj.fillCell(r, c)
+                    rippleOnClick(event, cell)
                 })
                 row.push(cell)
             }
@@ -90,7 +110,7 @@ class Game {
 
         // build and insert the elements into the DOM
         let message = $('<span>', {'class': 'message'})
-        let player  = $('<span>', {'class': 'player'})
+        let player = $('<span>', {'class': 'player'})
         let status = $('<p>', {'class': 'status'})
             .append(message)
             .append(': ')
@@ -119,7 +139,7 @@ class Game {
         let height = activeSide.height()
         history.css({height: height + 'px'})
 
-        return { allCells, game, message, player, history, historyBoards }
+        return {allCells, game, message, player, history, historyBoards}
     }
 
     // Updating
@@ -158,28 +178,26 @@ class Game {
         else
             this.elements.game.removeClass('game-over')
     }
+
     syncCells() {
         // reflect changes in this.values into the DOM elements, accessed through this.cells
         // and the next player
 
-        for (let r = 0; r < this.size; r++) {
-            for (let c = 0; c < this.size; c++) {
-                let value = this.values[r][c]
-                let cell = this.elements.allCells[r][c]
+        for (let {row, col, value} of matrixIterator(this.values)) {
+            let cell = this.elements.allCells[row][col]
 
-                let symbol = DISPLAY_SYMBOL[value]
-                cell.text(symbol)
+            let symbol = DISPLAY_SYMBOL[value]
+            cell.text(symbol)
 
-                if (value === null) // empty cell and game is not over
-                    cell.removeClass('noninteractive')
-            }
+            if (value === null) // empty cell and game is not over
+                cell.removeClass('noninteractive')
         }
     }
+
     highlightWinner(coords) {
         let cells = this.elements.allCells
-        for (let row of cells)
-            for (let cell of row)
-                cell.removeClass('winner')
+        for (let {value: cell} of matrixIterator(cells))
+            cell.removeClass('winner')
 
         for (let [x, y] of coords)
             cells[x][y].addClass('winner')
@@ -196,6 +214,7 @@ class Game {
         })
         this.syncHistory()
     }
+
     syncHistory() {
         let nBoards = Math.max(1, this.history.length - 1)
         let pastSteps = this.history.slice(0, nBoards)
@@ -212,26 +231,24 @@ class Game {
     // Win condition
     findWinner() {
         let maybeValue = ([x, y]) =>
+            // returns the element at row x and column y or undefined if out of bounds
             (0 <= x && x < this.size &&
-             0 <= y && y < this.size) ?
-            this.values[x][y] :
-            undefined
+                0 <= y && y < this.size) ?
+                this.values[x][y] :
+                undefined
 
-        for (let r = 0; r < this.size; r++) {
-            for (let c = 0; c < this.size; c++) {
-                let centerVal = this.values[r][c]
-                if (centerVal === null) // there can't be a winner with an empty center
-                    continue
+        for (let {row, col, value} of matrixIterator(this.values)) {
+            if (value === null) // there can't be a winner with an empty center
+                continue
 
-                for (let neighborDeltas of WIN_DELTAS) {
-                    let neighborCoords = neighborDeltas.map(([dx, dy]) => [r+dx, c+dy])
-                    let neighborValues = neighborCoords.map(maybeValue)
-                    if (neighborValues.every(v => v === centerVal))
-                        return {
-                        winner: centerVal,
-                        coords: [neighborCoords[0], [r, c], neighborCoords[1]]
+            for (let neighborDeltas of WIN_DELTAS) {
+                let neighborCoords = neighborDeltas.map(([dx, dy]) => [row + dx, col + dy])
+                let neighborValues = neighborCoords.map(maybeValue)
+                if (neighborValues.every(v => v === value))
+                    return {
+                        winner: value,
+                        coords: [neighborCoords[0], [row, col], neighborCoords[1]],
                     }
-                }
             }
         }
 
