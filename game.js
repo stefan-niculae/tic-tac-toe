@@ -1,7 +1,7 @@
 const CELL_STATES = {}
 CELL_STATES.EMPTY = Symbol('Empty Cell')
-CELL_STATES.X = Symbol('X')
-CELL_STATES.O = Symbol('O')
+CELL_STATES.X     = Symbol('X')
+CELL_STATES.O     = Symbol('O')
 const DISPLAY = {}
 DISPLAY[CELL_STATES.EMPTY] = '' // object creation syntax does not work with symbols
 DISPLAY[CELL_STATES.X]     = 'X'
