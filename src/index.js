@@ -1,5 +1,5 @@
 import $ from 'jquery'
-import Game from './game'
+import Game from './Game'
 
 const GAMES_ROOT = $('#games')
 const BUTTONS = $('#create-game').find('button')

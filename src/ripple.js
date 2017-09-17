@@ -28,16 +28,11 @@ function rippleOnClick(event, surface) {
     let x = event.pageX - surface.offset().left - (ink.width() / 2)
     let y = event.pageY - surface.offset().top - (ink.height() / 2)
 
-    let rippleColor = surface.data('ripple-color')
-
     //set the position and add class .animate
     ink.css({
         top: y + 'px',
         left: x + 'px',
-        background: rippleColor
     }).addClass("animate");
-
-    setTimeout(() => surface.addClass('noninteractive'), 500)
 }
 
 export default rippleOnClick

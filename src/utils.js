@@ -15,8 +15,15 @@ function head(array) {
     return array.length === 0 ? null : array[0]
 }
 
+function parseHtml(templateString) {
+    const parser = new DOMParser()
+    return parser.parseFromString(templateString, 'text/html').body
+}
+
+
 export {
     deepCopyArray,
     range,
     head,
+    parseHtml
 }
