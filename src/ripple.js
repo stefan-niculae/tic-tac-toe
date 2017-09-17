@@ -1,6 +1,8 @@
-// https://github.com/balintsoos/material-ripple
-// Material Ripple effect
-var rippleOnClick = (event, surface) => {
+function rippleOnClick(event, surface) {
+    /* Material Ripple effect
+       https://github.com/balintsoos/material-ripple
+    */
+
     // create .ink element if it doesn't exist
     if (surface.find(".ripple-ink").length === 0)
         surface.prepend("<div class='ripple-ink'></div>");
@@ -37,3 +39,5 @@ var rippleOnClick = (event, surface) => {
 
     setTimeout(() => surface.addClass('noninteractive'), 500)
 }
+
+export default rippleOnClick

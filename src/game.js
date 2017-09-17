@@ -1,3 +1,9 @@
+import $ from 'jquery'
+import { deepCopyArray, range, head } from './utils'
+import rippleOnClick from './ripple'
+import './style.sass'
+
+
 const CELL_STATES = {}
 CELL_STATES.EMPTY = Symbol('Empty Cell')
 CELL_STATES.X     = Symbol('X')
@@ -13,21 +19,6 @@ const WIN_DELTAS = [
     [[+1, -1], [-1, +1]], // down-left, up-right
 ]
 // TODO: const instead of let (almost everywhere)
-const GAMES_ROOT = $('#games')
-function createGame(n) {
-    new Game(n, GAMES_ROOT)
-}
-
-/** Utils **/
-deepCopyArray = (arr) => $.extend(true, [], arr)
-// TODO: alternative to Array(n)
-range = (n) => [...(new Array(n).keys())]  /* range(4) ~> [0, 1, 2, 3] */
-head = (array) => {
-    /* First element or null */
-    if (array.length === 0)
-        return null
-    return array[0]
-}
 
 
 class Game {
@@ -167,8 +158,7 @@ class Game {
     findWinner() {
         /* Return the coordinates of winning triplet of cells, if there is one */
         let game = this
-        let allCells = Array.from(this.iterateCells())
-        let winningCells = allCells // there can be multiple winning triplets at the same time
+        let winningCells = this.iterableCells // there can be multiple winning triplets at the same time
             .map(game.findWinningNeighbors.bind(game))
             .filter(winningNeighbors => winningNeighbors !== null)
         return head(winningCells) // first winning cell or null
@@ -203,7 +193,7 @@ class Game {
 
     highlightWinner(coordinates) {
         /* Highlight the cells that caused the win */
-        for (let {cell} of this.iterateCells())
+        for (let {cell} of this.iterableCells)
             cell.domElement.removeClass('winner')
 
         for (let [x, y] of coordinates) {
@@ -250,7 +240,7 @@ class Game {
 
     resetToState(pastState) {
         /* Replace the state of each cell, next player and the winner and keep only previous history steps */
-        for (let {row, col, cell} of this.iterateCells())
+        for (let {row, col, cell} of this.iterableCells)
             cell.state = pastState.cellStateMatrix[row][col]
         this.nextPlayer = pastState.nextPlayer
         this.winner = pastState.winner
@@ -261,15 +251,17 @@ class Game {
 
 
     /** Utils **/
-    *iterateCells() {
+    get iterableCells() {
         /* Go through each cell in the matrix */
+        let cells = []
         for (let row = 0; row < this.size; row++)
             for (let col = 0; col < this.size; col++)
-                yield {
+                cells.push({
                     row,
                     col,
                     cell: this.cellMatrix[row][col],
-                }
+                })
+        return cells
     }
 
     maybeGetCellState([row, col]) {
@@ -316,3 +308,5 @@ class ReflectiveCell {
         game.addCurrentStateToHistory()
     }
 }
+
+export default Game
