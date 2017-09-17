@@ -10,51 +10,21 @@ const WIN_DELTAS = [[[0, -1], [0, +1]], // left, right
 [[-1, 0], [+1, 0]], // above, below
 [[-1, -1], [+1, +1]], // up-left, down-right
 [[+1, -1], [-1, +1]]];
+// TODO: const instead of let (almost everywhere)
+const GAMES_ROOT = $('#games');
+function createGame(n) {
+    new Game(n, GAMES_ROOT);
+}
 
 /** Utils **/
 deepCopyArray = arr => $.extend(true, [], arr);
-range = n => [...new Array(n).keys()]; /* [0, 1, 2, 3, ... ] */
+// TODO: alternative to Array(n)
+range = n => [...new Array(n).keys()]; /* range(4) ~> [0, 1, 2, 3] */
 head = array => {
     /* First element or null */
     if (array.length === 0) return null;
     return array[0];
 };
-
-class ReflectiveCell {
-    /* Reflects changes to internal state in the DOM element */
-    constructor(domElement, game) {
-        this._state = CELL_STATES.EMPTY;
-        this.domElement = domElement.click(e => ReflectiveCell.fillCell(e, this, game));
-    }
-    set state(value) {
-        /* Show the corresponding symbol */
-        this._state = value;
-        let symbol = DISPLAY[value];
-
-        this.domElement.text(symbol);
-        if (value === CELL_STATES.EMPTY) // empty cell
-            // it will be turned noninteractive when the animation ends
-            this.domElement.removeClass('noninteractive');
-    }
-    get state() {
-        return this._state;
-    }
-
-    static fillCell(clickEvent, cell, game) {
-        /* Register the click, updating the game state */
-        if (game.isGameOver) return;
-
-        if (cell.state !== CELL_STATES.EMPTY) // cell is already filled
-            return;
-        cell.state = game.nextPlayer; // actually set the value
-
-        rippleOnClick(clickEvent, cell.domElement);
-
-        game.switchPlayers();
-        game.maybeEndGame();
-        game.addCurrentStateToHistory();
-    }
-}
 
 class Game {
     constructor(size, rootElement) {
@@ -64,11 +34,11 @@ class Game {
 
     /** Initialization **/
     initializeState(rootElement) {
-        /* Initialize internal values and create DOM elements */
+        /* Initialize internal values and create DOM domElements */
         this.cellMatrix = this.createCells();
-        this.elements = this.createDomElements(rootElement);
+        this.domElements = this.createDomElements(rootElement);
 
-        this.winner = null; // null, X or O
+        this.winner = null; // can be null, X or O
         this.nextPlayer = CELL_STATES.X;
 
         this.stateHistory = [];
@@ -79,9 +49,9 @@ class Game {
         /* Create the n by n matrix of (reflective) cells */
         let game = this;
 
-        return range(this.size).map(() =>
+        return range(this.size).map(_ =>
         // Create n rows
-        range(this.size).map(() =>
+        range(this.size).map(_ =>
         // Each row contains n cell elements
         new ReflectiveCell($('<td>', { 'class': 'ripple' }), game)));
     }
@@ -122,21 +92,23 @@ class Game {
     set nextPlayer(value) {
         /* Update the displayed player symbol */
         this._nextPlayer = value;
-        let displayedPlayer = this.isGameOver ? this.winner : this.nextPlayer;
-        this.elements.player.text(DISPLAY[displayedPlayer]);
+        const displayedPlayer = this.isGameOver ? this.winner : this.nextPlayer;
+        this.domElements.player.text(DISPLAY[displayedPlayer]);
     }
     get nextPlayer() {
         return this._nextPlayer;
     }
 
     set winner(value) {
-        /* Set the message for winning or next player */
+        /* Set the message for winning or next player
+            this field changes when resetting the game by clicking on a previous state in the history
+        * */
         this._winner = value;
         let message = this.isGameOver ? 'Winner' : 'Next player';
-        this.elements.message.text(message);
+        this.domElements.message.text(message);
 
         let action = this.isGameOver ? 'addClass' : 'removeClass';
-        this.elements.game[action]('game-over');
+        this.domElements.game[action]('game-over');
     }
     get winner() {
         return this._winner;
@@ -148,10 +120,10 @@ class Game {
 
         let game = this;
         let pastBoards = this.stateHistory.map(game.createHistoryBoard.bind(game));
-        this.elements.historyBoards.html(pastBoards);
+        this.domElements.historyBoards.html(pastBoards);
 
         // Scroll to bottom
-        let container = this.elements.history;
+        let container = this.domElements.history;
         container.animate({ scrollTop: container[0].scrollHeight }, 200);
     }
     get stateHistory() {
@@ -180,7 +152,8 @@ class Game {
         /* Return the coordinates of winning triplet of cells, if there is one */
         let game = this;
         let allCells = Array.from(this.iterateCells());
-        let winningCells = allCells.map(game.findWinningNeighbors.bind(game)).filter(winningNeighbors => winningNeighbors !== null);
+        let winningCells = allCells // there can be multiple winning triplets at the same time
+        .map(game.findWinningNeighbors.bind(game)).filter(winningNeighbors => winningNeighbors !== null);
         return head(winningCells); // first winning cell or null
     }
 
@@ -196,6 +169,7 @@ class Game {
             // We filter by the values but keep the coordinates
             return { neighborCoords, neighborValues };
         });
+        // There can be multiple winning lines at a time (eg: vertically and horizontally)
         let winningLines = neighborLines.filter(({ neighborCoords, neighborValues }) =>
         // All neighbors have the same value as the center
         neighborValues.every(v => v === cell.state));
@@ -272,13 +246,46 @@ class Game {
     }
 
     maybeGetCellState([row, col]) {
-        /* Returns the value at row x and column y or null if out of bounds */
+        /* Returns the value at the given row and column or null if out of bounds */
         let n = this.size;
         if (row < 0 || row >= n || col < 0 || col >= this.size) return null;
         return this.cellMatrix[row][col].state;
     }
 }
 
-let gamesRoot = $('#games');
-let createGame = n => new Game(n, gamesRoot);
+class ReflectiveCell {
+    /* Reflects changes to internal state in the DOM element */
+    constructor(domElement, game) {
+        this._state = CELL_STATES.EMPTY;
+        this.domElement = domElement.click(e => ReflectiveCell.fillCell(e, this, game));
+    }
+    set state(value) {
+        /* Show the corresponding symbol */
+        this._state = value;
+        let symbol = DISPLAY[value];
+
+        this.domElement.text(symbol);
+        if (value === CELL_STATES.EMPTY) // empty cell
+            // it will be turned noninteractive when the animation ends
+            this.domElement.removeClass('noninteractive');
+    }
+    get state() {
+        return this._state;
+    }
+
+    static fillCell(clickEvent, cell, game) {
+        /* Register the click, updating the game state */
+        if (game.isGameOver) return;
+
+        if (cell.state !== CELL_STATES.EMPTY) // cell is already filled
+            return;
+        cell.state = game.nextPlayer; // actually set the value
+
+        rippleOnClick(clickEvent, cell.domElement);
+
+        game.switchPlayers();
+        game.maybeEndGame();
+        game.addCurrentStateToHistory();
+    }
+}
 //# sourceMappingURL=game.js.map
