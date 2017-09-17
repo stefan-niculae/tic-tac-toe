@@ -1,6 +1,6 @@
 import $ from 'jquery'
 import { CELL_STATES, CELL_DISPLAY, BoardCell } from './BoardCell'
-import { deepCopyArray, range, head, parseHtml } from './utils'
+import { deepCopyArray, range, head, parseHtml, mergeJqueryObjects } from './utils'
 import './style.sass'
 
 
@@ -46,41 +46,51 @@ class Game {
 
     createDomElements(gamesRoot) {
         /* Create and insert the into the DOM elements for each part of the game */
-        // TODO refactor into more readable syntax
-        const message = $('<span>', {'class': 'message'})
-        const player = $('<span>', {'class': 'player'})
-        const status = $('<p>', {'class': 'status'})
-            .append(message)
-            .append(': ')
-            .append(player)
+        const template = `
+          <article class="game">
+            
+            <div class="active-side">
+              <p class="status">
+                <span class="message"></span>: 
+                <span class="player"></span>
+              </p>
+              
+              <table class="board">
+              </table>
+            </div>
 
-        const rows = this.cellMatrix
+            <div class="history">
+              <p>History</p>
+              <div class="boards">
+              </div>
+            </div>       
+              
+        </article>
+        <hr>
+        `
+        const gameElement = $(parseHtml(template)).find('.game')
+
+        // Insert the rows of cells to the board element
+        const rowElements = this.cellMatrix
             .map(cells => cells.map(reflectiveCell => reflectiveCell.domElement))
             .map(cellElements => $('<tr>').append(cellElements))
-        const board = $('<table>', {'class': 'board'}).append(rows)
+        mergeJqueryObjects(rowElements)
+            .appendTo(gameElement.find('.board'))
 
-        const activeSide = $('<div>', {'class': 'active-side'})
-            .append(status)
-            .append(board)
-
-        const historyBoards = $('<div>', {'class': 'boards'})
-        const history = $('<div>', {'class': 'history'})
-            .append('<p>History</p>')
-            .append(historyBoards)
-
-        const game = $('<article>', {'class': 'game'})
-            .append(activeSide)
-            .append(history)
-
-        gamesRoot
-            .append(game)
-            .append('<hr>')
+        // Insert the newly created game into the container of games
+        gamesRoot.append(gameElement)
 
         // Height is only evaluated after the element is inserted in the DOM
-        const height = activeSide.height()
-        history.css({height: height + 'px'})
+        const height = gameElement.find('.active-side').height()
+        gameElement.find('.history').css({height: height + 'px'})
 
-        return {game, message, player, history, historyBoards}
+        return {
+            game:          gameElement,
+            message:       gameElement.find('.message'),
+            player:        gameElement.find('.player'),
+            history:       gameElement.find('.history'),
+            historyBoards: gameElement.find('.boards'),
+        }
     }
 
 
@@ -168,8 +178,6 @@ class Game {
     /** Win condition **/
     findWinner() {
         /* Return the coordinates of winning triplet of cells (and the symbol that won), if there is one */
-        console.log(this.flatCells // there can be multiple winning triplets at the same time
-            .filter(cell => cell.state !== CELL_STATES.EMPTY) );
         const winningLinesInfo = this.flatCells // there can be multiple winning triplets at the same time
             .map(cell => this.findWinningLine(cell))
             .filter(winningLine => winningLine !== null)

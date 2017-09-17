@@ -17,7 +17,12 @@ function head(array) {
 
 function parseHtml(templateString) {
     const parser = new DOMParser()
-    return parser.parseFromString(templateString, 'text/html').body
+    return parser.parseFromString(templateString, 'text/html')
+}
+
+function mergeJqueryObjects(objects) {
+    /* Create a single jquery object from an array of jquery objects */
+    return $($.map(objects, elem => elem.get()))
 }
 
 
@@ -25,5 +30,6 @@ export {
     deepCopyArray,
     range,
     head,
-    parseHtml
+    parseHtml,
+    mergeJqueryObjects,
 }
