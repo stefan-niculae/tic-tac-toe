@@ -32,10 +32,8 @@ function rippleOnClick(event, surface) {
     // click coordinates relative to page minus
     // surface's position relative to page minus
     // half of self height/width to make it grow from pageY center
-    console.log('page y, surface bounding top', event.pageY, surface.getBoundingClientRect().top);
     let x = event.pageX - surface.offsetLeft - (ink.offsetWidth  / 2)
     let y = event.pageY - surface.offsetTop  - (ink.offsetHeight / 2)
-    console.log(y);
 
     //set the position and add class .animate
     ink.style.left = x + 'px'
