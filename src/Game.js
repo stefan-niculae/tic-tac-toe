@@ -1,6 +1,5 @@
-import $ from 'jquery'
 import { CELL_STATES, CELL_DISPLAY, BoardCell } from './BoardCell'
-import { deepCopyArray, range, head, parseHtml, mergeJqueryObjects } from './utils'
+import { deepCopyArray, range, head, parseHtml, removeChildren } from './utils'
 import './style.sass'
 
 
@@ -65,31 +64,35 @@ class Game {
               </div>
             </div>       
               
-        </article>
-        <hr>
+          </article>
         `
-        const gameElement = $(parseHtml(template)).find('.game')
+        const gameElement = parseHtml(template).getElementsByClassName('game')[0]
 
         // Insert the rows of cells to the board element
         const rowElements = this.cellMatrix
             .map(cells => cells.map(reflectiveCell => reflectiveCell.domElement))
-            .map(cellElements => $('<tr>').append(cellElements))
-        mergeJqueryObjects(rowElements)
-            .appendTo(gameElement.find('.board'))
+            .map(cellElements => {
+                const row = document.createElement('tr')
+                row.append(...cellElements)
+                return row
+            })
+
+        const boardElement = gameElement.getElementsByClassName('board')[0]
+        boardElement.append(...rowElements)
 
         // Insert the newly created game into the container of games
-        gamesRoot.append(gameElement)
+        gamesRoot.appendChild(gameElement)
 
         // Height is only evaluated after the element is inserted in the DOM
-        const height = gameElement.find('.active-side').height()
-        gameElement.find('.history').css({height: height + 'px'})
+        const height = gameElement.getElementsByClassName('active-side')[0].scrollHeight
+        gameElement.getElementsByClassName('history')[0].style.height = height + 'px'
 
         return {
             game:          gameElement,
-            message:       gameElement.find('.message'),
-            player:        gameElement.find('.player'),
-            history:       gameElement.find('.history'),
-            historyBoards: gameElement.find('.boards'),
+            message:       gameElement.getElementsByClassName('message')[0],
+            player:        gameElement.getElementsByClassName('player')[0],
+            history:       gameElement.getElementsByClassName('history')[0],
+            historyBoards: gameElement.getElementsByClassName('boards')[0],
         }
     }
 
@@ -100,22 +103,24 @@ class Game {
            This field changes after a cell is filled (or when resetting history to an earlier state)
         */
         this._nextPlayer = player // X or O
-        const displayedPlayer = this.isGameOver ? this.winner : this.nextPlayer
-        this.domElements.player.text(CELL_DISPLAY[displayedPlayer])
+        this.domElements.player.textContent = CELL_DISPLAY[this.nextPlayer]
     }
     get nextPlayer() { return this._nextPlayer }
 
     set winner(value) {
-        /* Update the displayed message: game in progress or game over.
+        /* Update the displayed message and symbol: game in progress or game over.
            This field changes when a winning line was detected after a cell is filled
            (or when resetting history to an earlier state)
         */
         this._winner = value // null, X or O
-        const message = this.isGameOver ? 'Winner' : 'Next player'
-        this.domElements.message.text(message)
+        this.domElements.message.textContent =
+            this.isGameOver ? 'Winner' : 'Next player'
 
-        const action = this.isGameOver ? 'addClass' : 'removeClass'
-        this.domElements.game[action]('game-over')
+        if (this.isGameOver)
+            this.domElements.player.textContent = CELL_DISPLAY[this.winner]
+
+        const action = this.isGameOver ? 'add' : 'remove'
+        this.domElements.game.classList[action]('game-over')
     }
     get winner() { return this._winner }
 
@@ -126,11 +131,12 @@ class Game {
         this._history = statesList
 
         const pastBoards = this.stateHistory.map(state => this.createHistoryBoard(state))
-        this.domElements.historyBoards.html(pastBoards)
+        removeChildren(this.domElements.historyBoards)
+        this.domElements.historyBoards.append(...pastBoards)
 
         // Scroll to bottom
         const container = this.domElements.history
-        container.animate({scrollTop: container[0].scrollHeight}, 200)
+        container.scrollTop = container.scrollHeight
     }
     get stateHistory() { return this._history }
 
@@ -218,11 +224,10 @@ class Game {
     highlightWinner(coordinates) {
         /* Highlight the cells that caused the win */
         for (const {cell} of this.flatCells)
-            cell.domElement.removeClass('winner')
-
+            cell.domElement.classList.remove('winner')
         for (const [x, y] of coordinates) {
             const cell = this.cellMatrix[x][y]
-            cell.domElement.addClass('winner')
+            cell.domElement.classList.add('winner')
         }
     }
 
@@ -249,19 +254,23 @@ class Game {
 
     createHistoryBoard(fromState) {
         /* Populate the board and add the hook to be able to restore to this state when clicked */
-        const cellStateRows = fromState.cellStateMatrix
-
-        const rowElements = $.map(cellStateRows, cellStateRow => {
-            const cellElements = $.map(cellStateRow, cellState => {
-                const symbol = CELL_DISPLAY[cellState]
-                return $('<td>').text(symbol) // cell element
+        const rowElements = fromState.cellStateMatrix.map(cellStateRow => {
+            const cellElements = cellStateRow.map(cellState => {
+                const cellElement = document.createElement('td')
+                cellElement.textContent = CELL_DISPLAY[cellState]
+                return cellElement
             })
-            return $('<tr>').append(cellElements) // row element
+
+            const rowElement = document.createElement('tr')
+            rowElement.append(...cellElements)
+            return rowElement
         })
 
-        return $('<table>', {'class': 'board'}) // board element
-            .append(rowElements)
-            .click(() => this.resetToState(fromState))
+        const boardElement = document.createElement('table')
+        boardElement.classList.add('board')
+        boardElement.onclick = () => this.resetToState(fromState)
+        boardElement.append(...rowElements)
+        return boardElement
     }
 
     resetToState(pastState) {

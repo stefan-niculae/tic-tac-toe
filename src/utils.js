@@ -1,13 +1,11 @@
-import $ from 'jquery'
-
-
 function deepCopyArray(arr) {
-    return $.extend(true, [], arr)
+    /* Not entirely deep */
+    return Object.assign([], arr)
 }
 
 function range(n) {
     /* range(4) ~> [0, 1, 2, 3] */
-    return [...(new Array(n).keys())] // TODO: alternative to Array(n)
+    return [...(new Array(n).keys())] // proper use of Array(n), not ineffective
 }
 
 function head(array) {
@@ -20,16 +18,17 @@ function parseHtml(templateString) {
     return parser.parseFromString(templateString, 'text/html')
 }
 
-function mergeJqueryObjects(objects) {
-    /* Create a single jquery object from an array of jquery objects */
-    return $($.map(objects, elem => elem.get()))
+function removeChildren(parent) {
+    while (parent.firstChild) {
+        parent.removeChild(parent.firstChild)
+    }
+    return parent
 }
-
 
 export {
     deepCopyArray,
     range,
     head,
     parseHtml,
-    mergeJqueryObjects,
+    removeChildren,
 }

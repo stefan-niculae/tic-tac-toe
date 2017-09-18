@@ -1,14 +1,10 @@
-import $ from 'jquery'
 import Game from './Game'
 
-const GAMES_ROOT = $('#games')
-const BUTTONS = $('#create-game').find('button')
+const GAMES_ROOT = document.getElementById('games')
+const BUTTONS = document.getElementsByClassName('add-button')
 
 
-$(() => {
-    for (let button of BUTTONS) {
-        const $button = $(button)
-        const size = $button.attr('data-game-size')
-        $button.click(() => new Game(+size, GAMES_ROOT))
-    }
-})
+for (let button of BUTTONS) {
+    const size = button.getAttribute('data-game-size')
+    button.onclick = () => new Game(+size, GAMES_ROOT)
+}

@@ -1,4 +1,3 @@
-import $ from 'jquery'
 import rippleOnClick from './ripple'
 
 
@@ -20,18 +19,19 @@ class BoardCell {
     constructor(game) {
         this._state = CELL_STATES.EMPTY
         this.game = game
-        this.domElement = $('<td>', {'class': 'ripple'})
-            .click(e => this.fillCell(e))
+
+        this.domElement = document.createElement('td')
+        this.domElement.classList += 'ripple'
+        this.domElement.onclick = (e) => this.fillCell(e)
     }
     set state(value) {
         /* Show the corresponding symbol */
         this._state = value
-        const symbol = CELL_DISPLAY[value]
+        this.domElement.textContent = CELL_DISPLAY[value]
 
-        this.domElement.text(symbol)
         if (value === CELL_STATES.EMPTY)  // empty cell
-        // it will be turned noninteractive when the animation ends
-            this.domElement.removeClass('noninteractive')
+            // It will be turned noninteractive when the animation ends
+            this.domElement.classList.remove('noninteractive')
     }
     get state() { return this._state }
 
@@ -46,7 +46,7 @@ class BoardCell {
 
         rippleOnClick(clickEvent, this.domElement)
         // Make the cell look non-interactive after the ripple animation is done
-        setTimeout(() => this.domElement.addClass('noninteractive'), 500)
+        setTimeout(() => this.domElement.classList.add('noninteractive'), 500)
 
         this.game.advanceTurn()
         this.game.addCurrentStateToHistory()
