@@ -1,2 +1,2 @@
-dist/*
-!dist/index.html
+#dist/*
+#!dist/index.html

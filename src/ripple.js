@@ -1,19 +1,22 @@
+function getOrCreate(parent, className) {
+    const elements = parent.getElementsByClassName(className)
+
+    if (elements.length > 0)
+        return elements[0]
+
+    const element = document.createElement('div')
+    element.classList.add(className)
+    parent.prepend(element)
+    return element
+}
+
 function rippleOnClick(event, surface) {
     /* Material Ripple effect
        https://github.com/balintsoos/material-ripple
     */
 
     // Create .ink element if it doesn't exist
-    const inkElements = surface.getElementsByClassName('ripple-ink')
-    let ink
-    if (inkElements.length === 0) {
-        ink = document.createElement('div')
-        ink.classList.add('ripple-ink')
-        surface.prepend(ink)
-    }
-    else {
-        ink = inkElements[0]
-    }
+    const ink = getOrCreate(surface, 'ink')
 
     // In case of quick double clicks stop the previous animation
     ink.classList.remove('animate');
