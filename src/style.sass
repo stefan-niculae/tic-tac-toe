@@ -93,19 +93,28 @@ button
         .ripple-ink
           background-color: $nice-blue
 
+  &.game-over,
+  &.draw
+    .active-side td
+      color: rgba(0, 0, 0, .5) // fade all symbols
+
   &.game-over .active-side
-    td
-      color: rgba(0, 0, 0, .5)
-      &.winner
-        background-color: $nice-blue-faded
     .status .player
       color: $nice-blue
+    td.winner
+      background-color: $nice-blue-faded
 
+  // If a cell is filled or the game is over/draw
   &.game-over .active-side td,
-  .active-side td.noninteractive
+  &.draw      .active-side td,
+  td.noninteractive
     cursor: default
     .ripple-ink
       display: none
+
+  // Hide next player symbol if there is a draw
+  &.draw .status .player
+    display: none
 
   .history
     overflow: scroll

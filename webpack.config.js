@@ -32,7 +32,7 @@ config = {
         new ExtractTextPlugin('styles.css'),
     ],
     devServer: {
-        contentBase: path.join(__dirname),
+        contentBase: path.join(__dirname, 'dist'),
     }
 };
 

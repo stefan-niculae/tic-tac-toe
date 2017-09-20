@@ -1,17 +1,5 @@
 import rippleOnClick from './ripple'
-
-
-const CELL_STATES = Object.freeze({
-    EMPTY: Symbol('Empty Cell'),
-    X    : Symbol('X'),
-    O    : Symbol('O'),
-})
-
-const CELL_DISPLAY = Object.freeze({
-    [CELL_STATES.EMPTY]: '',
-    [CELL_STATES.X]:     'X',
-    [CELL_STATES.O]:     'O',
-})
+import {CELL_STATES, CELL_DISPLAY, GAME_PHASES} from './constants'
 
 
 class BoardCell {
@@ -37,24 +25,19 @@ class BoardCell {
 
     fillCell(clickEvent) {
         /* Register the click, updating the game state */
-        if (this.game.isGameOver)
+        if (this.game.phase === GAME_PHASES.OVER)
             return
 
         if (this.state !== CELL_STATES.EMPTY) // cell is already filled
             return
-        this.state = this.game.nextPlayer // actually set the value
+        this.state = this.game.currentPlayer // actually set the value
 
         rippleOnClick(clickEvent, this.domElement)
         // Make the cell look non-interactive after the ripple animation is done
         setTimeout(() => this.domElement.classList.add('noninteractive'), 500)
 
         this.game.advanceTurn()
-        this.game.addCurrentStateToHistory()
     }
 }
 
-export {
-    CELL_STATES,
-    CELL_DISPLAY,
-    BoardCell
-}
+export default BoardCell

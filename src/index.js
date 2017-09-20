@@ -1,3 +1,4 @@
+import './style.sass'
 import Game from './Game'
 
 const GAMES_ROOT = document.getElementById('games')

@@ -16,7 +16,7 @@ function rippleOnClick(event, surface) {
     */
 
     // Create .ink element if it doesn't exist
-    const ink = getOrCreate(surface, 'ink')
+    const ink = getOrCreate(surface, 'ripple-ink')
 
     // In case of quick double clicks stop the previous animation
     ink.classList.remove('animate');
