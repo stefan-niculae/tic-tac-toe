@@ -7,4 +7,5 @@ Play with it at [stefann.eu/tic-tac-toe](http://stefann.eu/tic-tac-toe)
 - `npm install`
 - Develop: `npm run start` then acccess [localhost:8080](http://localhost:8080/) (preferably in Chrome)
 - Build: `npm run build`
+- Test: `npm run test`
 

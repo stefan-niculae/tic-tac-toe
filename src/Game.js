@@ -1,45 +1,34 @@
-import { CELL_STATES, CELL_DISPLAY, BoardCell } from './BoardCell'
+import BoardCell from './BoardCell'
+import {CELL_STATES, CELL_DISPLAY, GAME_PHASES, STATUS_MESSAGES, WINNING_LINES_DELTAS} from './constants'
 import { deepCopyArray, range, head, parseHtml, removeChildren } from './utils'
-import './style.sass'
 
-
-const WINNING_LINES_DELTAS = [
-    /* A winning line can be vertical, horizontal or diagonal. Each element in this list corresponds to one line.
-       Each line is composed of the center and the two neighbors.
-       The numbers represent the row and column deltas from the center.
-     */
-    [[0,  -1], [0,  +1]], // horizontal line: left, right
-    [[-1,  0], [+1,  0]], // vertical line: above, below
-    [[-1, -1], [+1, +1]], // diagonal line: up-left, down-right
-    [[+1, -1], [-1, +1]], // diagonal line: down-left, up-right
-]
 
 class Game {
-    /* Holds the game board (matrix of cells) and game status (next player and winner).
+    /* Holds the game board (matrix of cells) and game status (game phase, next player and winner).
        Creates the DOM elements and defines how turns are advanced (fill board cell, switch players);
        how the game ends (finding a winning line and restricting interactivity)
        and how the game state is stored as history and reset.
      */
 
-    constructor(size, rootElement) {
+    constructor(boardSize, rootElement) {
         /* Initialize internal values and create DOM elements */
-        this.size = size
+        this.boardSize = boardSize
 
         this.cellMatrix = this.createCells()
         this.domElements = this.createDomElements(rootElement)
 
-        this.winner = null // can be null, X or O
-        this.nextPlayer = CELL_STATES.X
+        this.phase = GAME_PHASES.ACTIVE
+        this.turnNumber = 1
         this.stateHistory = []
 
-        this.addCurrentStateToHistory() // add the initial state
+        this.addCurrentStateToHistory() // add the empty state
     }
 
     /** Initialization **/
     createCells() {
         /* Create the n by n matrix of (reflective) cells */
-        return range(this.size).map(_ => // create n rows
-            range(this.size).map(_ => new BoardCell(this)) // each containing n cell elements
+        return range(this.boardSize).map(_ => // create n rows
+            range(this.boardSize).map(_ => new BoardCell(this)) // each containing n cell elements
         )
     }
 
@@ -50,8 +39,7 @@ class Game {
             
             <div class="active-side">
               <p class="status">
-                <span class="message"></span>: 
-                <span class="player"></span>
+                <span class="message"></span><span class="player"></span>
               </p>
               
               <table class="board">
@@ -98,31 +86,34 @@ class Game {
 
 
     /** Reflective properties **/
-    set nextPlayer(player) {
-        /* Update the displayed player symbol.
+    set phase(value) {
+        /* Update the displayed message and game class. This field changes when a winning line
+           or a draw was detected after a cell is filled (or when resetting history to an earlier state)
+        */
+        this._phase = value
+
+        if (this.phase === GAME_PHASES.ACTIVE)
+            // Clear previous classes (over/draw)
+            this.domElements.game.classList.remove('game-over', 'draw')
+        else
+            // Add the appropriate game over or draw class
+            this.domElements.game.classList.add(
+                this.phase === GAME_PHASES.OVER ? 'game-over' : 'draw'
+            )
+
+        this.domElements.message.textContent = STATUS_MESSAGES[this.phase]
+    }
+    get phase() { return this._phase }
+
+    set turnNumber(value) {
+        /* Update the displayed player symbol and place the current game state in the history.
            This field changes after a cell is filled (or when resetting history to an earlier state)
         */
-        this._nextPlayer = player // X or O
-        this.domElements.player.textContent = CELL_DISPLAY[this.nextPlayer]
+        this._turnNumber = value
+        this.domElements.player.textContent = CELL_DISPLAY[this.currentPlayer]
+
     }
-    get nextPlayer() { return this._nextPlayer }
-
-    set winner(value) {
-        /* Update the displayed message and symbol: game in progress or game over.
-           This field changes when a winning line was detected after a cell is filled
-           (or when resetting history to an earlier state)
-        */
-        this._winner = value // null, X or O
-        this.domElements.message.textContent =
-            this.isGameOver ? 'Winner' : 'Next player'
-
-        if (this.isGameOver)
-            this.domElements.player.textContent = CELL_DISPLAY[this.winner]
-
-        const action = this.isGameOver ? 'add' : 'remove'
-        this.domElements.game.classList[action]('game-over')
-    }
-    get winner() { return this._winner }
+    get turnNumber() { return this._turnNumber }
 
     set stateHistory(statesList) {
         /* Update the list of previous game states by creating a board for each step in the history.
@@ -142,10 +133,16 @@ class Game {
 
 
     /** Computed properties **/
+    get currentPlayer() {
+        return this.turnNumber % 2 === 0 ?
+            CELL_STATES.O :
+            CELL_STATES.X
+    }
+
     get flatCells() {
         /* Each cell in one flat array */
-        const cellsByRow = range(this.size).map(i =>
-            range(this.size).map(j => ({
+        const cellsByRow = range(this.boardSize).map(i =>
+            range(this.boardSize).map(j => ({
                 row: i,
                 col: j,
                 cell: this.cellMatrix[i][j]
@@ -156,43 +153,46 @@ class Game {
 
     maybeGetCellState(row, col) {
         /* The value at the given row and column or null if out of bounds */
-        const n = this.size
-        if (row < 0 || row >= n || col < 0 || col >= this.size)
+        const n = this.boardSize
+        if (row < 0 || row >= n || col < 0 || col >= this.boardSize)
             return null
         return this.cellMatrix[row][col].state
-    }
-
-    get isGameOver() {
-        /* The game is over if there exists a winner */
-        return (this.winner !== null)
     }
 
 
     /** Updating **/
     advanceTurn() {
-        /* Switch players (X becomes O and vice-versa) and check if game is over */
-        this.nextPlayer = (this.nextPlayer === CELL_STATES.X) ?
-            CELL_STATES.O :
-            CELL_STATES.X
+        /* Switch players (X becomes O and vice-versa) and check if game is over or a draw */
+        const winningCoordinates = this.searchWinningCoordinates()
+        if (winningCoordinates !== null) { // actual winning line found
+            this.phase = GAME_PHASES.OVER
+            this.highlightWinner(winningCoordinates)
+            return
+        }
 
-        const winningNeighbors = this.findWinner()
-        if (winningNeighbors !== null) // winning line found
-            this.endGame(winningNeighbors)
+        this.turnNumber += 1
+        if (this.turnNumber > this.boardSize * this.boardSize) {
+            this.phase = GAME_PHASES.DRAW // means it's a draw
+            return
+        }
+
+        this.addCurrentStateToHistory()
     }
 
 
     /** Win condition **/
-    findWinner() {
-        /* Return the coordinates of winning triplet of cells (and the symbol that won), if there is one */
+    searchWinningCoordinates() {
+        /* Return the coordinates of winning triplet of cells (and the symbol that won); null if there is none */
         const winningLinesInfo = this.flatCells // there can be multiple winning triplets at the same time
-            .map(cell => this.findWinningLine(cell))
+            .map(cellInfo => this.searchWinningNeighbors(cellInfo))
             .filter(winningLine => winningLine !== null)
         return head(winningLinesInfo) // first or null
     }
 
-    findWinningLine({row, col, cell: center}) {
-        /* Return the coordinates of the winning line (left & right / above & below / diagonals) if there is one */
-        if (center.state === CELL_STATES.EMPTY)  // there can't be a winner with an empty center
+    searchWinningNeighbors({row, col, cell: center}) {
+        /* Return the coordinates of the winning line (vertical/horizontal/ diagonals); null if there is none. */
+        // There can't be a winner with an empty center (but there can be a hypothetical one
+        if (center.state === CELL_STATES.EMPTY)
             return null
 
         const neighborLines = WINNING_LINES_DELTAS.map(lineDeltas => {
@@ -201,34 +201,24 @@ class Game {
             // We filter by the values but keep the coordinates
             return {neighborCoordinates, neighborValues}
         })
+
         // There can be multiple winning lines at a time (eg: vertically and horizontally)
         const winningLines = neighborLines.filter(({neighborCoordinates, neighborValues}) =>
-            // All neighbors have the same value as the center
+            // All neighbors must have the same value as the center
             neighborValues.every(v => v === center.state),
         )
 
         if (winningLines.length === 0) // no winning lines found
             return null
-        return {
-            player: center.state,
-            coordinates: [[row, col], ...winningLines[0].neighborCoordinates],
-        }
-    }
-
-    endGame({player, coordinates}) {
-        /* Mark the game as over by setting the winner. This method is called when a winning line is found. */
-        this.winner = player
-        this.highlightWinner(coordinates)
+        return [[row, col], ...winningLines[0].neighborCoordinates]
     }
 
     highlightWinner(coordinates) {
         /* Highlight the cells that caused the win */
-        for (const {cell} of this.flatCells)
-            cell.domElement.classList.remove('winner')
-        for (const [x, y] of coordinates) {
-            const cell = this.cellMatrix[x][y]
-            cell.domElement.classList.add('winner')
-        }
+        this.flatCells.forEach(({cell}) => cell
+            .domElement.classList.remove('winner'))
+        coordinates.forEach(([x, y]) => this.cellMatrix[x][y]
+            .domElement.classList.add('winner'))
     }
 
 
@@ -245,11 +235,22 @@ class Game {
         // Create a new one instead of pushing into the old one in order to trigger the setter
         this.stateHistory = [...this.stateHistory, {
             cellStateMatrix: cellStateMatrix,
-            nextPlayer:      this.nextPlayer,
-            winner:          this.winner,
-            // The history array is not being saved, instead we mark how much of it should be kept
-            stepNumber:      this.stateHistory.length,
+            phase:      this.phase,
+            turnNumber: this.turnNumber,
+            // The history array is not being saved, instead it will be truncated to previous turns
         }]
+    }
+
+    resetToState(pastState) {
+        /* Replace the state of each cell, the next player and the winner and keep only previous history steps */
+        for (const {row, col, cell} of this.flatCells)
+            cell.state = pastState.cellStateMatrix[row][col]
+
+        this.phase      = pastState.phase
+        this.turnNumber = pastState.turnNumber
+
+        const truncatedHistory = this.stateHistory.slice(0, pastState.turnNumber) // discard future steps
+        this.stateHistory = deepCopyArray(truncatedHistory)
     }
 
     createHistoryBoard(fromState) {
@@ -271,17 +272,6 @@ class Game {
         boardElement.onclick = () => this.resetToState(fromState)
         boardElement.append(...rowElements)
         return boardElement
-    }
-
-    resetToState(pastState) {
-        /* Replace the state of each cell, the next player and the winner and keep only previous history steps */
-        for (const {row, col, cell} of this.flatCells)
-            cell.state = pastState.cellStateMatrix[row][col]
-        this.nextPlayer = pastState.nextPlayer
-        this.winner = pastState.winner
-
-        const truncatedHistory = this.stateHistory.slice(0, pastState.stepNumber + 1) // discard future steps
-        this.stateHistory = deepCopyArray(truncatedHistory)
     }
 
 }
